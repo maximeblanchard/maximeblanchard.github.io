@@ -2,7 +2,7 @@
   "name": "Gauge Configurator",
   "short_name": "Gauge",
   "description": "Configurateur de jauge avec preview live, export SVG, JSON et styles de segments.",
-  "start_url": "./gauge-configurator-fixed.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f0f11",
