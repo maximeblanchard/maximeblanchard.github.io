@@ -2,7 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f0f11">
 <title>Gauge Configurator</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./app-icon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,7 +27,8 @@
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     display: grid;
     grid-template-columns: 360px 1fr;
     grid-template-rows: 56px 1fr;
@@ -51,6 +56,8 @@
   }
 
   aside {
+    grid-column: 1;
+    grid-row: 2;
     border-right: 1px solid var(--border);
     overflow-y: auto;
     padding: 20px 16px;
@@ -138,6 +145,16 @@
     width: 100%;
     height: 28px;
   }
+  .seg-grid input[type=color].selected {
+    box-shadow: 0 0 0 2px var(--accent2);
+  }
+
+  .helper {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.4;
+    padding: 2px 4px 6px;
+  }
 
   .ticks-table {
     width: 100%;
@@ -185,7 +202,12 @@
   }
   #btn-add-tick:hover { color: var(--accent); border-color: var(--accent); }
 
-  #btn-export-svg {
+  #btn-export-svg,
+  #btn-export-json,
+  #btn-import-json,
+  #btn-apply-segment-stops,
+  #btn-apply-segment-range,
+  #btn-segment-solid {
     background: none;
     border: 1px solid var(--accent);
     border-radius: var(--radius);
@@ -197,26 +219,68 @@
     margin-top: 8px;
     transition: color .15s, border-color .15s, background-color .15s;
   }
-  #btn-export-svg:hover {
+  #btn-export-svg:hover,
+  #btn-export-json:hover,
+  #btn-import-json:hover,
+  #btn-apply-segment-stops:hover,
+  #btn-apply-segment-range:hover,
+  #btn-segment-solid:hover {
     background: rgba(74, 222, 128, .08);
   }
 
   main {
+    grid-column: 2;
+    grid-row: 2;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 32px;
+    overflow-y: auto;
+    padding: 20px 32px 32px;
   }
   #gauge-wrap {
     width: 100%;
     max-width: 680px;
+    position: sticky;
+    top: 0;
   }
   #gauge-wrap svg {
     width: 100%;
     display: block;
     overflow: visible;
   }
+
+  @media (max-width: 960px) {
+    body {
+      grid-template-columns: 1fr;
+      grid-template-rows: 56px minmax(240px, 38vh) 1fr;
+    }
+
+    aside {
+      grid-column: 1;
+      grid-row: 3;
+      border-right: none;
+      border-top: 1px solid var(--border);
+      padding: 16px 14px 28px;
+    }
+
+    main {
+      grid-column: 1;
+      grid-row: 2;
+      padding: 12px 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(74, 222, 128, .10), transparent 55%),
+        linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, 0));
+    }
+
+    #gauge-wrap {
+      max-width: none;
+      top: 0;
+    }
+  }
 </style>
+
+
 <!-- Matomo -->
 <script>
   var _paq = window._paq = window._paq || [];
@@ -234,10 +298,7 @@
 <!-- End Matomo Code -->
 
 
- 
 </head>
-
- 
 <body>
 
 <header>
@@ -248,6 +309,23 @@
 <aside id="panel">
   <div class="section-title">Couleurs des segments</div>
   <div class="seg-grid" id="seg-colors"></div>
+  <div class="row">
+    <label>Segment cible</label>
+    <select id="segment-editor-index" style="width:160px"></select>
+  </div>
+  <div class="row">
+    <label>Plage segments</label>
+    <select id="segment-range-start" style="width:74px"></select>
+    <select id="segment-range-end" style="width:74px"></select>
+  </div>
+  <div class="row">
+    <label>Stops</label>
+    <input type="text" id="segment-stops" placeholder="#1c7d34, #facc15, #aa1f1f">
+  </div>
+  <div class="helper">Une couleur = plein. Deux ou plus = degrade. "Appliquer au segment" modifie seulement le segment cible. "Appliquer sur plage" repartit le degrade du premier au dernier segment.</div>
+  <button id="btn-apply-segment-stops">Appliquer au segment</button>
+  <button id="btn-apply-segment-range">Appliquer sur plage</button>
+  <button id="btn-segment-solid">Couleur simple</button>
 
   <div class="section-title">Graduations</div>
   <table class="ticks-table">
@@ -337,6 +415,9 @@
     <input type="checkbox" id="show-base-line">
   </div>
   <button id="btn-export-svg">Exporter SVG</button>
+  <button id="btn-export-json">Sauver JSON</button>
+  <button id="btn-import-json">Importer JSON</button>
+  <input type="file" id="import-json-input" accept=".json,application/json" hidden>
 </aside>
 
 <main>
@@ -354,11 +435,13 @@ const state = {
     { val: 2200 }, { val: 2600 }, { val: 3000 }, { val: 3500 }, { val: 4000 },
     { val: 4500 }, { val: 5000 }, { val: 6000 }, { val: 9000 },
   ],
-  segColors: [
-    '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34',
-    '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34',
-    '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34',
-    '#aa1f1f', '#aa1f1f',
+  segStyles: [
+    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
+    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
+    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
+    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
+    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
+    { colors: ['#1c7d34'] }, { colors: ['#aa1f1f'] }, { colors: ['#aa1f1f'] },
   ],
   fontFamily: 'Arial Black, Arial, sans-serif',
   fontSize: 15,
@@ -372,9 +455,15 @@ const state = {
   endAngle: 0,
   bottomCircleRadius: 0,
   bottomCircleColor: '#d8d8d8',
+  selectedSegmentIndex: 0,
+  rangeStartIndex: 0,
+  rangeEndIndex: 0,
   showBaseLine: false,
   innerTick: true,
 };
+
+const defaultStateSnapshot = JSON.parse(JSON.stringify(state));
+const STORAGE_KEY = 'gauge-configurator-state-v1';
 
 const svg = document.getElementById('gauge');
 const NS = 'http://www.w3.org/2000/svg';
@@ -424,9 +513,266 @@ function bottomSemiCirclePath(cx, topY, radius) {
   return `M ${leftX} ${topY} A ${radius} ${radius} 0 0 1 ${rightX} ${topY} L ${leftX} ${topY} Z`;
 }
 
+function normalizeColorValue(color, fallback = '#1c7d34') {
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(color || '').trim()) ? String(color).trim() : fallback;
+}
+
+function normalizeSegmentStyle(style, fallback = '#1c7d34') {
+  if (typeof style === 'string') return { colors: [normalizeColorValue(style, fallback)] };
+  if (Array.isArray(style)) return { colors: normalizeStopList(style, fallback) };
+  if (style && Array.isArray(style.colors)) return { colors: normalizeStopList(style.colors, fallback) };
+  return { colors: [fallback] };
+}
+
+function normalizeStopList(colors, fallback = '#1c7d34') {
+  const normalized = (colors || []).map((color) => normalizeColorValue(color, fallback)).filter(Boolean);
+  return normalized.length ? normalized : [fallback];
+}
+
+function ensureSegmentStyles() {
+  const targetLength = Math.max(0, state.ticks.length - 1);
+  if (!Array.isArray(state.segStyles)) state.segStyles = [];
+  while (state.segStyles.length < targetLength) state.segStyles.push({ colors: ['#1c7d34'] });
+  while (state.segStyles.length > targetLength) state.segStyles.pop();
+  state.segStyles = state.segStyles.map((style, index) => normalizeSegmentStyle(style, index >= targetLength - 2 ? '#aa1f1f' : '#1c7d34'));
+  state.selectedSegmentIndex = Math.min(Math.max(0, state.selectedSegmentIndex || 0), Math.max(0, targetLength - 1));
+  state.rangeStartIndex = Math.min(Math.max(0, state.rangeStartIndex || 0), Math.max(0, targetLength - 1));
+  state.rangeEndIndex = Math.min(Math.max(0, state.rangeEndIndex || 0), Math.max(0, targetLength - 1));
+}
+
+function parseStopInput(value, fallback = '#1c7d34') {
+  return normalizeStopList(String(value || '').split(',').map((part) => part.trim()).filter(Boolean), fallback);
+}
+
+function buildSegmentEditorOptions() {
+  const select = document.getElementById('segment-editor-index');
+  const rangeStart = document.getElementById('segment-range-start');
+  const rangeEnd = document.getElementById('segment-range-end');
+  const previous = state.selectedSegmentIndex;
+  const previousRangeStart = state.rangeStartIndex;
+  const previousRangeEnd = state.rangeEndIndex;
+  select.innerHTML = '';
+  rangeStart.innerHTML = '';
+  rangeEnd.innerHTML = '';
+  state.segStyles.forEach((_, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = `Segment ${index + 1}`;
+    select.appendChild(option);
+
+    const optionStart = document.createElement('option');
+    optionStart.value = index;
+    optionStart.textContent = String(index + 1);
+    rangeStart.appendChild(optionStart);
+
+    const optionEnd = document.createElement('option');
+    optionEnd.value = index;
+    optionEnd.textContent = String(index + 1);
+    rangeEnd.appendChild(optionEnd);
+  });
+  if (state.segStyles.length) {
+    select.value = String(Math.min(previous, state.segStyles.length - 1));
+    rangeStart.value = String(Math.min(previousRangeStart, state.segStyles.length - 1));
+    rangeEnd.value = String(Math.min(previousRangeEnd, state.segStyles.length - 1));
+  }
+}
+
+function syncSegmentEditor() {
+  ensureSegmentStyles();
+  const select = document.getElementById('segment-editor-index');
+  const input = document.getElementById('segment-stops');
+  if (!state.segStyles.length) {
+    select.innerHTML = '';
+    input.value = '';
+    return;
+  }
+  state.selectedSegmentIndex = Math.min(state.selectedSegmentIndex, state.segStyles.length - 1);
+  select.value = String(state.selectedSegmentIndex);
+  document.getElementById('segment-range-start').value = String(state.rangeStartIndex);
+  document.getElementById('segment-range-end').value = String(state.rangeEndIndex);
+  input.value = state.segStyles[state.selectedSegmentIndex].colors.join(', ');
+}
+
+function updateSegmentEditorSelection(index) {
+  state.selectedSegmentIndex = Math.min(Math.max(0, index), Math.max(0, state.segStyles.length - 1));
+  syncSegmentEditor();
+  buildSegColors();
+}
+
+function getSegmentFill(i, a1, a2, defs) {
+  const style = normalizeSegmentStyle(state.segStyles[i], '#1c7d34');
+  if (style.colors.length === 1) return style.colors[0];
+
+  const gradientId = `seg-gradient-${i}`;
+  const start = pt(R_BAND_OUT, a1);
+  const end = pt(R_BAND_OUT, a2);
+  const gradient = elSVG('linearGradient', {
+    id: gradientId,
+    gradientUnits: 'userSpaceOnUse',
+    x1: start.x,
+    y1: start.y,
+    x2: end.x,
+    y2: end.y
+  });
+
+  style.colors.forEach((color, index) => {
+    gradient.appendChild(elSVG('stop', {
+      offset: `${(index / (style.colors.length - 1)) * 100}%`,
+      'stop-color': color
+    }));
+  });
+
+  defs.appendChild(gradient);
+  return `url(#${gradientId})`;
+}
+
+function hexToRgb(hex) {
+  const normalized = normalizeColorValue(hex).slice(1);
+  const full = normalized.length === 3 ? normalized.split('').map((c) => c + c).join('') : normalized;
+  return {
+    r: parseInt(full.slice(0, 2), 16),
+    g: parseInt(full.slice(2, 4), 16),
+    b: parseInt(full.slice(4, 6), 16)
+  };
+}
+
+function rgbToHex(rgb) {
+  return '#' + ['r', 'g', 'b'].map((key) => {
+    const value = Math.max(0, Math.min(255, Math.round(rgb[key])));
+    return value.toString(16).padStart(2, '0');
+  }).join('');
+}
+
+function interpolateHexColor(startColor, endColor, t) {
+  const a = hexToRgb(startColor);
+  const b = hexToRgb(endColor);
+  return rgbToHex({
+    r: a.r + (b.r - a.r) * t,
+    g: a.g + (b.g - a.g) * t,
+    b: a.b + (b.b - a.b) * t
+  });
+}
+
+function sampleGradientStops(colors, t) {
+  const stops = normalizeStopList(colors);
+  if (stops.length === 1) return stops[0];
+  if (t <= 0) return stops[0];
+  if (t >= 1) return stops[stops.length - 1];
+
+  const scaled = t * (stops.length - 1);
+  const index = Math.floor(scaled);
+  const localT = scaled - index;
+  return interpolateHexColor(stops[index], stops[index + 1], localT);
+}
+
+function syncControlsFromState() {
+  const rangeIds = [
+    ['font-size', state.fontSize],
+    ['start-angle', state.startAngle],
+    ['end-angle', state.endAngle],
+    ['label-gap', state.labelGap],
+    ['label-gap-inner', state.labelGapInner],
+    ['label-tail', state.labelTail],
+    ['bottom-circle-radius', state.bottomCircleRadius],
+  ];
+
+  rangeIds.forEach(([id, value]) => {
+    const input = document.getElementById(id);
+    const output = document.getElementById(id + '-val');
+    if (input) input.value = value;
+    if (output) output.textContent = value;
+  });
+
+  document.getElementById('font-family').value = state.fontFamily;
+  document.getElementById('font-weight').value = state.fontWeight;
+  document.getElementById('label-orient').value = state.labelOrient;
+  document.getElementById('label-color').value = state.labelColor;
+  document.getElementById('bottom-circle-color').value = state.bottomCircleColor;
+  document.getElementById('inner-tick').checked = state.innerTick;
+  document.getElementById('show-base-line').checked = state.showBaseLine;
+}
+
+function normalizeImportedState(raw) {
+  const next = JSON.parse(JSON.stringify(defaultStateSnapshot));
+  const source = raw && typeof raw === 'object' ? raw : {};
+  next.ticks = Array.isArray(source.ticks) && source.ticks.length >= 2 ? source.ticks.map((tick) => ({
+    val: Number(tick.val ?? 0),
+    label: tick.label === undefined || tick.label === '' ? undefined : String(tick.label)
+  })) : next.ticks;
+
+  next.segStyles = source.segStyles || source.segColors || next.segStyles;
+  next.selectedSegmentIndex = Number(source.selectedSegmentIndex ?? 0);
+  next.rangeStartIndex = Number(source.rangeStartIndex ?? next.rangeStartIndex);
+  next.rangeEndIndex = Number(source.rangeEndIndex ?? next.rangeEndIndex);
+  next.fontSize = Number(source.fontSize ?? next.fontSize);
+  next.labelGap = Number(source.labelGap ?? next.labelGap);
+  next.labelGapInner = Number(source.labelGapInner ?? next.labelGapInner);
+  next.labelTail = Number(source.labelTail ?? next.labelTail);
+  next.startAngle = Number(source.startAngle ?? next.startAngle);
+  next.endAngle = Number(source.endAngle ?? next.endAngle);
+  next.bottomCircleRadius = Number(source.bottomCircleRadius ?? next.bottomCircleRadius);
+  next.fontWeight = String(source.fontWeight ?? next.fontWeight);
+  next.fontFamily = String(source.fontFamily ?? next.fontFamily);
+  next.labelColor = normalizeColorValue(source.labelColor ?? next.labelColor, next.labelColor);
+  next.bottomCircleColor = normalizeColorValue(source.bottomCircleColor ?? next.bottomCircleColor, next.bottomCircleColor);
+  next.innerTick = Boolean(source.innerTick ?? next.innerTick);
+  next.showBaseLine = Boolean(source.showBaseLine ?? next.showBaseLine);
+
+  return next;
+}
+
+function applyImportedState(raw) {
+  const normalized = normalizeImportedState(raw);
+  Object.keys(state).forEach((key) => delete state[key]);
+  Object.assign(state, normalized);
+  ensureSegmentStyles();
+  syncControlsFromState();
+  buildTicksTable();
+  buildSegColors();
+  buildSegmentEditorOptions();
+  syncSegmentEditor();
+  render();
+}
+
+function saveStateToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: 1,
+      ...state
+    }));
+  } catch (error) {
+    // Ignore storage failures so the live preview keeps working.
+  }
+}
+
+function loadStateFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    applyImportedState(JSON.parse(raw));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  const isServed = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!isServed) {
+    console.info('Service worker indisponible hors http(s)/localhost.');
+    return;
+  }
+
+  navigator.serviceWorker.register('./sw.js').catch((error) => {
+    console.warn('Echec enregistrement service worker:', error);
+  });
+}
+
 function render() {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 
+  ensureSegmentStyles();
   const n = state.ticks.length;
   if (n < 2) return;
   const startRad = toRad(state.startAngle);
@@ -437,7 +783,9 @@ function render() {
   svg.setAttribute('viewBox', `0 0 700 ${viewBoxHeight}`);
 
   const scene = elSVG('g', {});
+  const defs = elSVG('defs', {});
   svg.appendChild(scene);
+  scene.appendChild(defs);
 
   scene.appendChild(elSVG('path', {
     d: flatBottomArcPath(R_BAND_OUT, startRad, endRad, faceBottomY),
@@ -445,10 +793,12 @@ function render() {
   }));
 
   for (let i = 0; i < n - 1; i++) {
-    const color = state.segColors[i] || '#1c7d34';
     const a1 = iToRad(i, n);
     const a2 = iToRad(i + 1, n);
-    scene.appendChild(elSVG('path', { d: arcPath(R_BAND_OUT, R_BAND_IN, a1, a2), fill: color }));
+    scene.appendChild(elSVG('path', {
+      d: arcPath(R_BAND_OUT, R_BAND_IN, a1, a2),
+      fill: getSegmentFill(i, a1, a2, defs)
+    }));
   }
 
   scene.appendChild(elSVG('path', {
@@ -535,20 +885,27 @@ function render() {
     t.setAttribute('transform', `rotate(${rotSVG}, ${pos.x}, ${pos.y})`);
   }
 
+  saveStateToStorage();
 }
 
 function buildSegColors() {
   const grid = document.getElementById('seg-colors');
   grid.innerHTML = '';
   const n = state.ticks.length - 1;
-  while (state.segColors.length < n) state.segColors.push('#1c7d34');
+  ensureSegmentStyles();
   for (let i = 0; i < n; i++) {
     const inp = document.createElement('input');
     inp.type = 'color';
-    inp.value = state.segColors[i] || '#1c7d34';
+    inp.className = i === state.selectedSegmentIndex ? 'selected' : '';
+    inp.value = state.segStyles[i].colors[0] || '#1c7d34';
     inp.title = `Segment ${i + 1}`;
+    inp.addEventListener('click', () => {
+      updateSegmentEditorSelection(i);
+    });
     inp.addEventListener('input', (e) => {
-      state.segColors[i] = e.target.value;
+      state.segStyles[i] = { colors: [e.target.value] };
+      state.selectedSegmentIndex = i;
+      syncSegmentEditor();
       render();
     });
     grid.appendChild(inp);
@@ -594,9 +951,11 @@ function buildTicksTable() {
     btn.textContent = 'x';
     btn.addEventListener('click', () => {
       state.ticks.splice(i, 1);
-      state.segColors.splice(Math.max(0, i - 1), 1);
+      state.segStyles.splice(Math.max(0, i - 1), 1);
       buildTicksTable();
       buildSegColors();
+      buildSegmentEditorOptions();
+      syncSegmentEditor();
       render();
     });
     tdD.appendChild(btn);
@@ -609,9 +968,11 @@ function buildTicksTable() {
 document.getElementById('btn-add-tick').addEventListener('click', () => {
   const last = state.ticks[state.ticks.length - 1];
   state.ticks.push({ val: (last ? last.val + 1000 : 0) });
-  state.segColors.push('#1c7d34');
+  state.segStyles.push({ colors: ['#1c7d34'] });
   buildTicksTable();
   buildSegColors();
+  buildSegmentEditorOptions();
+  syncSegmentEditor();
   render();
 });
 
@@ -662,6 +1023,88 @@ function exportCurrentSVG() {
   URL.revokeObjectURL(url);
 }
 
+function exportCurrentJSON() {
+  const payload = JSON.stringify({
+    version: 1,
+    ...state
+  }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gauge-config.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importConfigFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      applyImportedState(JSON.parse(String(reader.result || '{}')));
+    } catch (error) {
+      alert('JSON invalide');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function applySegmentStopsFromInput() {
+  ensureSegmentStyles();
+  if (!state.segStyles.length) return;
+  const input = document.getElementById('segment-stops');
+  const fallback = state.segStyles[state.selectedSegmentIndex]?.colors?.[0] || '#1c7d34';
+  state.segStyles[state.selectedSegmentIndex] = {
+    colors: parseStopInput(input.value, fallback)
+  };
+  buildSegColors();
+  syncSegmentEditor();
+  render();
+}
+
+function applyGradientAcrossRange() {
+  ensureSegmentStyles();
+  if (!state.segStyles.length) return;
+
+  const input = document.getElementById('segment-stops');
+  const fallback = state.segStyles[state.selectedSegmentIndex]?.colors?.[0] || '#1c7d34';
+  const colors = parseStopInput(input.value, fallback);
+  const start = Math.min(state.rangeStartIndex, state.rangeEndIndex);
+  const end = Math.max(state.rangeStartIndex, state.rangeEndIndex);
+  const segmentCount = end - start + 1;
+
+  if (segmentCount <= 1) {
+    state.selectedSegmentIndex = start;
+    state.segStyles[start] = { colors };
+  } else {
+    for (let offset = 0; offset < segmentCount; offset++) {
+      const segStartT = offset / segmentCount;
+      const segEndT = (offset + 1) / segmentCount;
+      const localColors = [sampleGradientStops(colors, segStartT)];
+
+      if (colors.length > 2) {
+        for (let stopIndex = 1; stopIndex < colors.length - 1; stopIndex++) {
+          const stopT = stopIndex / (colors.length - 1);
+          if (stopT > segStartT && stopT < segEndT) {
+            localColors.push(colors[stopIndex]);
+          }
+        }
+      }
+
+      localColors.push(sampleGradientStops(colors, segEndT));
+      state.segStyles[start + offset] = { colors: normalizeStopList(localColors) };
+    }
+    state.selectedSegmentIndex = start;
+  }
+
+  buildSegColors();
+  syncSegmentEditor();
+  render();
+}
+
 bindRange('font-size', 'fontSize');
 bindRange('start-angle', 'startAngle');
 bindRange('end-angle', 'endAngle');
@@ -686,10 +1129,47 @@ document.getElementById('show-base-line').addEventListener('change', (e) => {
 });
 
 document.getElementById('btn-export-svg').addEventListener('click', exportCurrentSVG);
+document.getElementById('btn-export-json').addEventListener('click', exportCurrentJSON);
+document.getElementById('btn-import-json').addEventListener('click', () => {
+  document.getElementById('import-json-input').click();
+});
+document.getElementById('import-json-input').addEventListener('change', (e) => {
+  importConfigFile(e.target.files && e.target.files[0]);
+  e.target.value = '';
+});
+document.getElementById('segment-editor-index').addEventListener('change', (e) => {
+  updateSegmentEditorSelection(Number(e.target.value));
+});
+document.getElementById('segment-range-start').addEventListener('change', (e) => {
+  state.rangeStartIndex = Number(e.target.value);
+  syncSegmentEditor();
+});
+document.getElementById('segment-range-end').addEventListener('change', (e) => {
+  state.rangeEndIndex = Number(e.target.value);
+  syncSegmentEditor();
+});
+document.getElementById('btn-apply-segment-stops').addEventListener('click', applySegmentStopsFromInput);
+document.getElementById('btn-apply-segment-range').addEventListener('click', applyGradientAcrossRange);
+document.getElementById('btn-segment-solid').addEventListener('click', () => {
+  ensureSegmentStyles();
+  if (!state.segStyles.length) return;
+  const firstColor = state.segStyles[state.selectedSegmentIndex]?.colors?.[0] || '#1c7d34';
+  state.segStyles[state.selectedSegmentIndex] = { colors: [firstColor] };
+  buildSegColors();
+  syncSegmentEditor();
+  render();
+});
 
+ensureSegmentStyles();
+syncControlsFromState();
 buildSegColors();
+buildSegmentEditorOptions();
+syncSegmentEditor();
 buildTicksTable();
-render();
+if (!loadStateFromStorage()) {
+  render();
+}
+registerServiceWorker();
 
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => render());
