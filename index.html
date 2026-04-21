@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Gauge Configurator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --panel: #17171a;
+    --border: #2a2a30;
+    --accent: #4ade80;
+    --accent2: #f97316;
+    --text: #e8e8ea;
+    --muted: #6b6b75;
+    --input-bg: #1e1e24;
+    --radius: 8px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    grid-template-rows: 56px 1fr;
+  }
+
+  header {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+  }
+  header h1 {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    color: var(--accent);
+  }
+  header span {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  aside {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 12px 4px 6px;
+    border-top: 1px solid var(--border);
+    margin-top: 6px;
+  }
+  .section-title:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .row label {
+    font-size: 13px;
+    color: var(--text);
+    flex-shrink: 0;
+    min-width: 100px;
+  }
+
+  input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 4px;
+    cursor: pointer;
+  }
+  .val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  input[type=color] {
+    width: 32px;
+    height: 24px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    padding: 1px;
+  }
+
+  input[type=text], input[type=number], select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 5px 8px;
+    width: 100%;
+  }
+  input[type=number] { width: 70px; }
+
+  input[type=checkbox] {
+    accent-color: var(--accent);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+  }
+
+  .seg-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    padding: 6px 0;
+  }
+  .seg-grid input[type=color] {
+    width: 100%;
+    height: 28px;
+  }
+
+  .ticks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+  .ticks-table th {
+    color: var(--muted);
+    text-align: left;
+    padding: 4px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ticks-table td { padding: 2px 2px; }
+  .ticks-table input[type=number] {
+    width: 60px;
+    padding: 3px 5px;
+  }
+  .ticks-table input[type=text] {
+    width: 64px;
+    padding: 3px 5px;
+  }
+  .ticks-table button {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+  .ticks-table button:hover { color: #ef4444; border-color: #ef4444; }
+
+  #btn-add-tick {
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-size: 12px;
+    padding: 6px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: color .15s, border-color .15s;
+  }
+  #btn-add-tick:hover { color: var(--accent); border-color: var(--accent); }
+
+  #btn-export-svg {
+    background: none;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    color: var(--accent);
+    font-size: 12px;
+    padding: 8px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: color .15s, border-color .15s, background-color .15s;
+  }
+  #btn-export-svg:hover {
+    background: rgba(74, 222, 128, .08);
+  }
+
+  main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  #gauge-wrap {
+    width: 100%;
+    max-width: 680px;
+  }
+  #gauge-wrap svg {
+    width: 100%;
+    display: block;
+    overflow: visible;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>GAUGE CONFIGURATOR</h1>
+  <span>- live preview</span>
+</header>
+
+<aside id="panel">
+  <div class="section-title">Couleurs des segments</div>
+  <div class="seg-grid" id="seg-colors"></div>
+
+  <div class="section-title">Graduations</div>
+  <table class="ticks-table">
+    <thead><tr><th>#</th><th>Valeur</th><th>Label</th><th></th></tr></thead>
+    <tbody id="ticks-body"></tbody>
+  </table>
+  <button id="btn-add-tick">+ Ajouter une graduation</button>
+
+  <div class="section-title">Texte des labels</div>
+  <div class="row">
+    <label>Police</label>
+    <select id="font-family" style="width:160px">
+      <option value="Arial Black, Arial, sans-serif">Arial Black</option>
+      <option value="'Courier New', monospace">Courier New</option>
+      <option value="Georgia, serif">Georgia</option>
+      <option value="Impact, sans-serif">Impact</option>
+      <option value="'DM Mono', monospace">DM Mono</option>
+      <option value="'DM Sans', sans-serif">DM Sans</option>
+    </select>
+  </div>
+  <div class="row">
+    <label>Taille</label>
+    <input type="range" id="font-size" min="8" max="28" value="15">
+    <span class="val" id="font-size-val">15</span>
+  </div>
+  <div class="row">
+    <label>Graisse</label>
+    <select id="font-weight" style="width:160px">
+      <option value="400">400 - Normal</option>
+      <option value="700">700 - Bold</option>
+      <option value="900" selected>900 - Black</option>
+    </select>
+  </div>
+  <div class="row">
+    <label>Couleur</label>
+    <input type="color" id="label-color" value="#111111">
+  </div>
+  <div class="row">
+    <label>Orientation</label>
+    <select id="label-orient" style="width:160px">
+      <option value="radial" selected>Aligné à la graduation</option>
+      <option value="horizontal">Horizontal</option>
+    </select>
+  </div>
+
+  <div class="section-title">Géométrie</div>
+  <div class="row">
+    <label>Écart ext.</label>
+    <input type="range" id="label-gap" min="0" max="30" value="8">
+    <span class="val" id="label-gap-val">8</span>
+  </div>
+  <div class="row">
+    <label>Écart int.</label>
+    <input type="range" id="label-gap-inner" min="0" max="40" value="14">
+    <span class="val" id="label-gap-inner-val">14</span>
+  </div>
+  <div class="row">
+    <label>Queue tick</label>
+    <input type="range" id="label-tail" min="0" max="60" value="20">
+    <span class="val" id="label-tail-val">20</span>
+  </div>
+  <div class="row">
+    <label>Queue côté centre</label>
+    <input type="checkbox" id="inner-tick" checked>
+  </div>
+  <div class="row">
+    <label>Angle debut</label>
+    <input type="range" id="start-angle" min="0" max="180" value="180">
+    <span class="val" id="start-angle-val">180</span>
+  </div>
+  <div class="row">
+    <label>Angle fin</label>
+    <input type="range" id="end-angle" min="0" max="180" value="0">
+    <span class="val" id="end-angle-val">0</span>
+  </div>
+  <div class="row">
+    <label>Demi-cercle</label>
+    <input type="range" id="bottom-circle-radius" min="0" max="120" value="0">
+    <span class="val" id="bottom-circle-radius-val">0</span>
+  </div>
+  <div class="row">
+    <label>Couleur bas</label>
+    <input type="color" id="bottom-circle-color" value="#d8d8d8">
+  </div>
+  <div class="row">
+    <label>Ligne base</label>
+    <input type="checkbox" id="show-base-line">
+  </div>
+  <button id="btn-export-svg">Exporter SVG</button>
+</aside>
+
+<main>
+  <div id="gauge-wrap">
+
+    <svg id="gauge" viewBox="0 0 700 410" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+</main>
+
+<script>
+const state = {
+  ticks: [
+    { val: 0 }, { val: 50 }, { val: 120 }, { val: 250 }, { val: 450 },
+    { val: 650 }, { val: 900 }, { val: 1150 }, { val: 1500 }, { val: 1850 },
+    { val: 2200 }, { val: 2600 }, { val: 3000 }, { val: 3500 }, { val: 4000 },
+    { val: 4500 }, { val: 5000 }, { val: 6000 }, { val: 9000 },
+  ],
+  segColors: [
+    '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34',
+    '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34',
+    '#1c7d34', '#1c7d34', '#1c7d34', '#1c7d34',
+    '#aa1f1f', '#aa1f1f',
+  ],
+  fontFamily: 'Arial Black, Arial, sans-serif',
+  fontSize: 15,
+  fontWeight: '900',
+  labelColor: '#111111',
+  labelOrient: 'radial',
+  labelGap: 8,
+  labelGapInner: 14,
+  labelTail: 20,
+  startAngle: 180,
+  endAngle: 0,
+  bottomCircleRadius: 0,
+  bottomCircleColor: '#d8d8d8',
+  showBaseLine: false,
+  innerTick: true,
+};
+
+const svg = document.getElementById('gauge');
+const NS = 'http://www.w3.org/2000/svg';
+const CX = 350;
+const CY = 350;
+const R_BAND_OUT = 310;
+const R_BAND_IN = 268;
+const R_FACE = 266;
+const R_TICK_OUT = 310;
+const R_TICK_END = 250;
+
+function toRad(d) { return d * Math.PI / 180; }
+function pt(r, a) { return { x: CX + r * Math.cos(a), y: CY - r * Math.sin(a) }; }
+function iToRad(i, n) {
+  return toRad(state.startAngle + i * ((state.endAngle - state.startAngle) / (n - 1)));
+}
+
+function elSVG(tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function arcPath(rOut, rIn, startRad, endRad) {
+  const s1 = pt(rOut, startRad);
+  const e1 = pt(rOut, endRad);
+  const s2 = pt(rIn, endRad);
+  const e2 = pt(rIn, startRad);
+  const large = Math.abs(endRad - startRad) > Math.PI ? 1 : 0;
+  const outerSweep = startRad > endRad ? 1 : 0;
+  const innerSweep = outerSweep ? 0 : 1;
+  return `M ${s1.x} ${s1.y} A ${rOut} ${rOut} 0 ${large} ${outerSweep} ${e1.x} ${e1.y} L ${s2.x} ${s2.y} A ${rIn} ${rIn} 0 ${large} ${innerSweep} ${e2.x} ${e2.y} Z`;
+}
+
+function flatBottomArcPath(radius, startRad, endRad, bottomY) {
+  const s = pt(radius, startRad);
+  const e = pt(radius, endRad);
+  const large = Math.abs(endRad - startRad) > Math.PI ? 1 : 0;
+  const sweep = startRad > endRad ? 1 : 0;
+  return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} ${sweep} ${e.x} ${e.y} L ${e.x} ${bottomY} L ${s.x} ${bottomY} Z`;
+}
+
+function bottomSemiCirclePath(cx, topY, radius) {
+  const leftX = cx - radius;
+  const rightX = cx + radius;
+  return `M ${leftX} ${topY} A ${radius} ${radius} 0 0 1 ${rightX} ${topY} L ${leftX} ${topY} Z`;
+}
+
+function render() {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const n = state.ticks.length;
+  if (n < 2) return;
+  const startRad = toRad(state.startAngle);
+  const endRad = toRad(state.endAngle);
+  const faceBottomExt = Math.ceil(state.fontSize * 0.9) + 6;
+  const faceBottomY = CY + faceBottomExt;
+  const viewBoxHeight = Math.ceil(faceBottomY + 10);
+  svg.setAttribute('viewBox', `0 0 700 ${viewBoxHeight}`);
+
+  const scene = elSVG('g', {});
+  svg.appendChild(scene);
+
+  scene.appendChild(elSVG('path', {
+    d: flatBottomArcPath(R_BAND_OUT, startRad, endRad, faceBottomY),
+    fill: '#d8d8d8'
+  }));
+
+  for (let i = 0; i < n - 1; i++) {
+    const color = state.segColors[i] || '#1c7d34';
+    const a1 = iToRad(i, n);
+    const a2 = iToRad(i + 1, n);
+    scene.appendChild(elSVG('path', { d: arcPath(R_BAND_OUT, R_BAND_IN, a1, a2), fill: color }));
+  }
+
+  scene.appendChild(elSVG('path', {
+    d: flatBottomArcPath(R_FACE, startRad, endRad, faceBottomY),
+    fill: '#d8d8d8'
+  }));
+
+  if (state.bottomCircleRadius > 0) {
+    scene.appendChild(elSVG('path', {
+      d: bottomSemiCirclePath(CX, faceBottomY, state.bottomCircleRadius),
+      fill: state.bottomCircleColor
+    }));
+  }
+
+  if (state.showBaseLine) {
+    scene.appendChild(elSVG('line', {
+      x1: CX - R_BAND_OUT,
+      y1: CY,
+      x2: CX + R_BAND_OUT,
+      y2: CY,
+      stroke: '#111',
+      'stroke-width': '1.8',
+      'stroke-linecap': 'round'
+    }));
+  }
+
+  const labelData = [];
+  for (let i = 0; i < n; i++) {
+    const label = state.ticks[i].label !== undefined ? String(state.ticks[i].label) : String(state.ticks[i].val);
+    const t = elSVG('text', {
+      x: 0,
+      y: 0,
+      'text-anchor': 'middle',
+      'dominant-baseline': 'middle',
+      'font-family': state.fontFamily,
+      'font-weight': state.fontWeight,
+      'font-size': state.fontSize,
+      fill: 'transparent',
+    }, label);
+    scene.appendChild(t);
+    labelData.push({ i, halfW: t.getComputedTextLength() / 2, el: t });
+  }
+
+  for (const { i, halfW, el: t } of labelData) {
+    const a = iToRad(i, n);
+    const aDeg = state.startAngle + i * ((state.endAngle - state.startAngle) / (n - 1));
+
+    const rLabel = R_TICK_END - state.labelGap - halfW;
+    const pos = pt(rLabel, a);
+
+    const rOuterEnd = rLabel + halfW + state.labelGap;
+    const p1 = pt(R_TICK_OUT, a);
+    const p2 = pt(rOuterEnd, a);
+    scene.appendChild(elSVG('line', {
+      x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+      stroke: '#111', 'stroke-width': '1.8', 'stroke-linecap': 'round'
+    }));
+
+    if (state.innerTick) {
+      const rInnerEdge = rLabel - halfW;
+      const rInnerStart = rInnerEdge - state.labelGapInner;
+      const rInnerEnd = rInnerStart - state.labelTail;
+      const p3 = pt(rInnerStart, a);
+      const p4 = pt(rInnerEnd, a);
+      scene.appendChild(elSVG('line', {
+        x1: p3.x, y1: p3.y, x2: p4.x, y2: p4.y,
+        stroke: '#111', 'stroke-width': '1.8', 'stroke-linecap': 'round'
+      }));
+    }
+
+    let rotSVG;
+    if (state.labelOrient === 'horizontal') {
+      rotSVG = 0;
+    } else {
+      rotSVG = i <= (n - 1) / 2 ? 180 - aDeg : -aDeg;
+    }
+
+    t.setAttribute('x', pos.x);
+    t.setAttribute('y', pos.y);
+    t.setAttribute('fill', state.labelColor);
+    t.setAttribute('font-family', state.fontFamily);
+    t.setAttribute('font-weight', state.fontWeight);
+    t.setAttribute('font-size', state.fontSize);
+    t.setAttribute('transform', `rotate(${rotSVG}, ${pos.x}, ${pos.y})`);
+  }
+
+}
+
+function buildSegColors() {
+  const grid = document.getElementById('seg-colors');
+  grid.innerHTML = '';
+  const n = state.ticks.length - 1;
+  while (state.segColors.length < n) state.segColors.push('#1c7d34');
+  for (let i = 0; i < n; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'color';
+    inp.value = state.segColors[i] || '#1c7d34';
+    inp.title = `Segment ${i + 1}`;
+    inp.addEventListener('input', (e) => {
+      state.segColors[i] = e.target.value;
+      render();
+    });
+    grid.appendChild(inp);
+  }
+}
+
+function buildTicksTable() {
+  const tbody = document.getElementById('ticks-body');
+  tbody.innerHTML = '';
+  state.ticks.forEach((tick, i) => {
+    const tr = document.createElement('tr');
+
+    const tdI = document.createElement('td');
+    tdI.textContent = i;
+    tdI.style.cssText = 'color:var(--muted);font-family:DM Mono,monospace;font-size:11px;padding:2px 4px';
+    tr.appendChild(tdI);
+
+    const tdV = document.createElement('td');
+    const inpV = document.createElement('input');
+    inpV.type = 'number';
+    inpV.value = tick.val;
+    inpV.addEventListener('input', (e) => {
+      state.ticks[i].val = Number(e.target.value);
+      render();
+    });
+    tdV.appendChild(inpV);
+    tr.appendChild(tdV);
+
+    const tdL = document.createElement('td');
+    const inpL = document.createElement('input');
+    inpL.type = 'text';
+    inpL.placeholder = String(tick.val);
+    inpL.value = tick.label !== undefined ? tick.label : '';
+    inpL.addEventListener('input', (e) => {
+      state.ticks[i].label = e.target.value === '' ? undefined : e.target.value;
+      render();
+    });
+    tdL.appendChild(inpL);
+    tr.appendChild(tdL);
+
+    const tdD = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.textContent = 'x';
+    btn.addEventListener('click', () => {
+      state.ticks.splice(i, 1);
+      state.segColors.splice(Math.max(0, i - 1), 1);
+      buildTicksTable();
+      buildSegColors();
+      render();
+    });
+    tdD.appendChild(btn);
+    tr.appendChild(tdD);
+
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('btn-add-tick').addEventListener('click', () => {
+  const last = state.ticks[state.ticks.length - 1];
+  state.ticks.push({ val: (last ? last.val + 1000 : 0) });
+  state.segColors.push('#1c7d34');
+  buildTicksTable();
+  buildSegColors();
+  render();
+});
+
+function bindRange(id, key) {
+  const inp = document.getElementById(id);
+  const out = document.getElementById(id + '-val');
+  inp.addEventListener('input', (e) => {
+    state[key] = Number(e.target.value);
+    if (out) out.textContent = e.target.value;
+    render();
+  });
+}
+
+function bindSelect(id, key) {
+  document.getElementById(id).addEventListener('change', (e) => {
+    state[key] = e.target.value;
+    render();
+  });
+}
+
+function bindColor(id, key) {
+  document.getElementById(id).addEventListener('input', (e) => {
+    state[key] = e.target.value;
+    render();
+  });
+}
+
+function exportCurrentSVG() {
+  const clone = svg.cloneNode(true);
+  const viewBox = svg.getAttribute('viewBox') || '0 0 700 400';
+  const parts = viewBox.split(/\s+/).map(Number);
+  const width = parts[2] || 700;
+  const height = parts[3] || 400;
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('width', width);
+  clone.setAttribute('height', height);
+  clone.removeAttribute('style');
+
+  const source = '<?xml version="1.0" encoding="UTF-8"?>\n' + clone.outerHTML;
+  const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gauge-export.svg';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+bindRange('font-size', 'fontSize');
+bindRange('start-angle', 'startAngle');
+bindRange('end-angle', 'endAngle');
+bindRange('label-gap', 'labelGap');
+bindRange('label-gap-inner', 'labelGapInner');
+bindRange('label-tail', 'labelTail');
+bindRange('bottom-circle-radius', 'bottomCircleRadius');
+bindSelect('font-family', 'fontFamily');
+bindSelect('font-weight', 'fontWeight');
+bindSelect('label-orient', 'labelOrient');
+bindColor('label-color', 'labelColor');
+bindColor('bottom-circle-color', 'bottomCircleColor');
+
+document.getElementById('inner-tick').addEventListener('change', (e) => {
+  state.innerTick = e.target.checked;
+  render();
+});
+
+document.getElementById('show-base-line').addEventListener('change', (e) => {
+  state.showBaseLine = e.target.checked;
+  render();
+});
+
+document.getElementById('btn-export-svg').addEventListener('click', exportCurrentSVG);
+
+buildSegColors();
+buildTicksTable();
+render();
+
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => render());
+}
+</script>
+</body>
+</html>
