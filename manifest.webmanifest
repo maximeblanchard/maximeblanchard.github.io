@@ -1,0 +1,25 @@
+{
+  "name": "Gauge Configurator",
+  "short_name": "Gauge",
+  "description": "Configurateur de jauge avec preview live, export SVG, JSON et styles de segments.",
+  "start_url": "./gauge-configurator-fixed.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f0f11",
+  "theme_color": "#0f0f11",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "./app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
