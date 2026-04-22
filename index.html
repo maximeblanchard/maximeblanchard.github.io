@@ -417,6 +417,8 @@
   <button id="btn-export-svg">Exporter SVG</button>
   <button id="btn-export-json">Sauver JSON</button>
   <button id="btn-import-json">Importer JSON</button>
+ 
+  <button id="btn-connexion">Connexion</button>
   <input type="file" id="import-json-input" accept=".json,application/json" hidden>
 </aside>
 
@@ -1132,6 +1134,10 @@ document.getElementById('btn-export-svg').addEventListener('click', exportCurren
 document.getElementById('btn-export-json').addEventListener('click', exportCurrentJSON);
 document.getElementById('btn-import-json').addEventListener('click', () => {
   document.getElementById('import-json-input').click();
+});
+
+document.getElementById('btn-connexion').addEventListener('click', () => {
+  window.location.href = "/secure";
 });
 document.getElementById('import-json-input').addEventListener('change', (e) => {
   importConfigFile(e.target.files && e.target.files[0]);
