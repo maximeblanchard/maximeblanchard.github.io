@@ -1,6 +1,7 @@
 {
+  "id": "/jauge/",
   "name": "Gauge Configurator",
-  "short_name": "Gauge",
+  "short_name": "Jauge",
   "description": "Configurateur de jauge avec preview live, export SVG, JSON et styles de segments.",
   "start_url": "./",
   "scope": "./",
@@ -10,16 +11,28 @@
   "lang": "fr",
   "icons": [
     {
-      "src": "./app-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "./app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ]
 }

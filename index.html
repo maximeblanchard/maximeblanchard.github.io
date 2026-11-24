@@ -1,1185 +1,318 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0f0f11">
-<title>Gauge Configurator</title>
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" href="./app-icon.svg" type="image/svg+xml">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #0f0f11;
-    --panel: #17171a;
-    --border: #2a2a30;
-    --accent: #4ade80;
-    --accent2: #f97316;
-    --text: #e8e8ea;
-    --muted: #6b6b75;
-    --input-bg: #1e1e24;
-    --radius: 8px;
-  }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    grid-template-rows: 56px 1fr;
-  }
-
-  header {
-    grid-column: 1 / -1;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    padding: 0 24px;
-    gap: 12px;
-  }
-  header h1 {
-    font-family: 'DM Mono', monospace;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: .08em;
-    color: var(--accent);
-  }
-  header span {
-    font-size: 12px;
-    color: var(--muted);
-    font-family: 'DM Mono', monospace;
-  }
-
-  aside {
-    grid-column: 1;
-    grid-row: 2;
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-    padding: 20px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .section-title {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: .12em;
-    color: var(--muted);
-    text-transform: uppercase;
-    padding: 12px 4px 6px;
-    border-top: 1px solid var(--border);
-    margin-top: 6px;
-  }
-  .section-title:first-child { border-top: none; margin-top: 0; padding-top: 0; }
-
-  .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 4px 0;
-  }
-  .row label {
-    font-size: 13px;
-    color: var(--text);
-    flex-shrink: 0;
-    min-width: 100px;
-  }
-
-  input[type=range] {
-    flex: 1;
-    accent-color: var(--accent);
-    height: 4px;
-    cursor: pointer;
-  }
-  .val {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: var(--accent);
-    min-width: 36px;
-    text-align: right;
-  }
-
-  input[type=color] {
-    width: 32px;
-    height: 24px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: none;
-    cursor: pointer;
-    padding: 1px;
-  }
-
-  input[type=text], input[type=number], select {
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    padding: 5px 8px;
-    width: 100%;
-  }
-  input[type=number] { width: 70px; }
-
-  input[type=checkbox] {
-    accent-color: var(--accent);
-    width: 15px;
-    height: 15px;
-    cursor: pointer;
-  }
-
-  .seg-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 4px;
-    padding: 6px 0;
-  }
-  .seg-grid input[type=color] {
-    width: 100%;
-    height: 28px;
-  }
-  .seg-grid input[type=color].selected {
-    box-shadow: 0 0 0 2px var(--accent2);
-  }
-
-  .helper {
-    color: var(--muted);
-    font-size: 11px;
-    line-height: 1.4;
-    padding: 2px 4px 6px;
-  }
-
-  .ticks-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-  }
-  .ticks-table th {
-    color: var(--muted);
-    text-align: left;
-    padding: 4px 4px;
-    border-bottom: 1px solid var(--border);
-  }
-  .ticks-table td { padding: 2px 2px; }
-  .ticks-table input[type=number] {
-    width: 60px;
-    padding: 3px 5px;
-  }
-  .ticks-table input[type=text] {
-    width: 64px;
-    padding: 3px 5px;
-  }
-  .ticks-table button {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 4px;
-    cursor: pointer;
-    padding: 2px 6px;
-    font-size: 11px;
-  }
-  .ticks-table button:hover { color: #ef4444; border-color: #ef4444; }
-
-  #btn-add-tick {
-    background: none;
-    border: 1px dashed var(--border);
-    border-radius: var(--radius);
-    color: var(--muted);
-    font-size: 12px;
-    padding: 6px;
-    width: 100%;
-    cursor: pointer;
-    margin-top: 4px;
-    transition: color .15s, border-color .15s;
-  }
-  #btn-add-tick:hover { color: var(--accent); border-color: var(--accent); }
-
-  #btn-export-svg,
-  #btn-export-json,
-  #btn-import-json,
-  #btn-apply-segment-stops,
-  #btn-apply-segment-range,
-  #btn-segment-solid {
-    background: none;
-    border: 1px solid var(--accent);
-    border-radius: var(--radius);
-    color: var(--accent);
-    font-size: 12px;
-    padding: 8px;
-    width: 100%;
-    cursor: pointer;
-    margin-top: 8px;
-    transition: color .15s, border-color .15s, background-color .15s;
-  }
-  #btn-export-svg:hover,
-  #btn-export-json:hover,
-  #btn-import-json:hover,
-  #btn-apply-segment-stops:hover,
-  #btn-apply-segment-range:hover,
-  #btn-segment-solid:hover {
-    background: rgba(74, 222, 128, .08);
-  }
-
-  main {
-    grid-column: 2;
-    grid-row: 2;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    overflow-y: auto;
-    padding: 20px 32px 32px;
-  }
-  #gauge-wrap {
-    width: 100%;
-    max-width: 680px;
-    position: sticky;
-    top: 0;
-  }
-  #gauge-wrap svg {
-    width: 100%;
-    display: block;
-    overflow: visible;
-  }
-
-  @media (max-width: 960px) {
-    body {
-      grid-template-columns: 1fr;
-      grid-template-rows: 56px minmax(240px, 38vh) 1fr;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self';"
+  />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Outils Web — Maxime Blanchard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    aside {
-      grid-column: 1;
-      grid-row: 3;
-      border-right: none;
-      border-top: 1px solid var(--border);
-      padding: 16px 14px 28px;
+    :root {
+      --bg: #0b1120;
+      --bg-glow-1: rgba(16, 185, 129, 0.14);
+      --bg-glow-2: rgba(56, 189, 248, 0.12);
+      --surface: #111827;
+      --surface-hover: #162033;
+      --border: #1e293b;
+      --border-hover: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --emerald: #10b981;
+      --sky: #38bdf8;
+      --amber: #f59e0b;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 60% 45% at 15% 0%, var(--bg-glow-1), transparent 70%),
+        radial-gradient(ellipse 55% 40% at 85% 10%, var(--bg-glow-2), transparent 70%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
     }
 
     main {
-      grid-column: 1;
-      grid-row: 2;
-      padding: 12px 12px 16px;
-      border-bottom: 1px solid var(--border);
-      background:
-        radial-gradient(circle at 50% 0%, rgba(74, 222, 128, .10), transparent 55%),
-        linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, 0));
+      width: 100%;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 64px 24px 48px;
+      flex: 1;
     }
 
-    #gauge-wrap {
-      max-width: none;
-      top: 0;
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--emerald);
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 18px;
     }
-  }
-</style>
 
+    h1 {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-size: clamp(28px, 4.5vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
 
-<!-- Matomo -->
-<script>
-  var _paq = window._paq = window._paq || [];
-  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
-  _paq.push(['trackPageView']);
-  _paq.push(['enableLinkTracking']);
-  (function() {
-    var u="https://maximeblanchard.matomo.cloud/";
-    _paq.push(['setTrackerUrl', u+'matomo.php']);
-    _paq.push(['setSiteId', '1']);
-    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-    g.async=true; g.src='https://cdn.matomo.cloud/maximeblanchard.matomo.cloud/matomo.js'; s.parentNode.insertBefore(g,s);
-  })();
-</script>
-<!-- End Matomo Code -->
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 620px;
+      line-height: 1.6;
+      margin-bottom: 44px;
+    }
 
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 20px;
+    }
 
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: inherit;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 26px;
+      transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+      box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.55);
+    }
+
+    .card:focus-visible {
+      outline: 2px solid var(--emerald);
+      outline-offset: 3px;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-dpe {
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .icon-pac {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+    }
+
+    .icon-jauge {
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      color: #cbd5e1;
+    }
+
+    .card h2 {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted);
+      flex: 1;
+      margin-bottom: 22px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid rgba(148, 163, 184, 0.12);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .card-dpe .cta { color: #34d399; }
+    .card-pac .cta { color: #38bdf8; }
+    .card-jauge .cta { color: #fbbf24; }
+
+    .path {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .arrow {
+      display: inline-block;
+      transition: transform 0.18s ease;
+    }
+
+    .card:hover .arrow {
+      transform: translateX(4px);
+    }
+
+    footer {
+      width: 100%;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 20px 24px 36px;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      color: #64748b;
+    }
+  </style>
 </head>
 <body>
-
-<header>
-  <h1>GAUGE CONFIGURATOR</h1>
-  <span>- live preview</span>
-</header>
-
-<aside id="panel">
-  <div class="section-title">Couleurs des segments</div>
-  <div class="seg-grid" id="seg-colors"></div>
-  <div class="row">
-    <label>Segment cible</label>
-    <select id="segment-editor-index" style="width:160px"></select>
-  </div>
-  <div class="row">
-    <label>Plage segments</label>
-    <select id="segment-range-start" style="width:74px"></select>
-    <select id="segment-range-end" style="width:74px"></select>
-  </div>
-  <div class="row">
-    <label>Stops</label>
-    <input type="text" id="segment-stops" placeholder="#1c7d34, #facc15, #aa1f1f">
-  </div>
-  <div class="helper">Une couleur = plein. Deux ou plus = degrade. "Appliquer au segment" modifie seulement le segment cible. "Appliquer sur plage" repartit le degrade du premier au dernier segment.</div>
-  <button id="btn-apply-segment-stops">Appliquer au segment</button>
-  <button id="btn-apply-segment-range">Appliquer sur plage</button>
-  <button id="btn-segment-solid">Couleur simple</button>
-
-  <div class="section-title">Graduations</div>
-  <table class="ticks-table">
-    <thead><tr><th>#</th><th>Valeur</th><th>Label</th><th></th></tr></thead>
-    <tbody id="ticks-body"></tbody>
-  </table>
-  <button id="btn-add-tick">+ Ajouter une graduation</button>
-
-  <div class="section-title">Texte des labels</div>
-  <div class="row">
-    <label>Police</label>
-    <select id="font-family" style="width:160px">
-      <option value="Arial Black, Arial, sans-serif">Arial Black</option>
-      <option value="'Courier New', monospace">Courier New</option>
-      <option value="Georgia, serif">Georgia</option>
-      <option value="Impact, sans-serif">Impact</option>
-      <option value="'DM Mono', monospace">DM Mono</option>
-      <option value="'DM Sans', sans-serif">DM Sans</option>
-    </select>
-  </div>
-  <div class="row">
-    <label>Taille</label>
-    <input type="range" id="font-size" min="8" max="28" value="15">
-    <span class="val" id="font-size-val">15</span>
-  </div>
-  <div class="row">
-    <label>Graisse</label>
-    <select id="font-weight" style="width:160px">
-      <option value="400">400 - Normal</option>
-      <option value="700">700 - Bold</option>
-      <option value="900" selected>900 - Black</option>
-    </select>
-  </div>
-  <div class="row">
-    <label>Couleur</label>
-    <input type="color" id="label-color" value="#111111">
-  </div>
-  <div class="row">
-    <label>Orientation</label>
-    <select id="label-orient" style="width:160px">
-      <option value="radial" selected>Aligné à la graduation</option>
-      <option value="horizontal">Horizontal</option>
-    </select>
-  </div>
-
-  <div class="section-title">Géométrie</div>
-  <div class="row">
-    <label>Écart ext.</label>
-    <input type="range" id="label-gap" min="0" max="30" value="8">
-    <span class="val" id="label-gap-val">8</span>
-  </div>
-  <div class="row">
-    <label>Écart int.</label>
-    <input type="range" id="label-gap-inner" min="0" max="40" value="14">
-    <span class="val" id="label-gap-inner-val">14</span>
-  </div>
-  <div class="row">
-    <label>Queue tick</label>
-    <input type="range" id="label-tail" min="0" max="60" value="20">
-    <span class="val" id="label-tail-val">20</span>
-  </div>
-  <div class="row">
-    <label>Queue côté centre</label>
-    <input type="checkbox" id="inner-tick" checked>
-  </div>
-  <div class="row">
-    <label>Angle debut</label>
-    <input type="range" id="start-angle" min="0" max="180" value="180">
-    <span class="val" id="start-angle-val">180</span>
-  </div>
-  <div class="row">
-    <label>Angle fin</label>
-    <input type="range" id="end-angle" min="0" max="180" value="0">
-    <span class="val" id="end-angle-val">0</span>
-  </div>
-  <div class="row">
-    <label>Demi-cercle</label>
-    <input type="range" id="bottom-circle-radius" min="0" max="120" value="0">
-    <span class="val" id="bottom-circle-radius-val">0</span>
-  </div>
-  <div class="row">
-    <label>Couleur bas</label>
-    <input type="color" id="bottom-circle-color" value="#d8d8d8">
-  </div>
-  <div class="row">
-    <label>Ligne base</label>
-    <input type="checkbox" id="show-base-line">
-  </div>
-  <button id="btn-export-svg">Exporter SVG</button>
-  <button id="btn-export-json">Sauver JSON</button>
-  <button id="btn-import-json">Importer JSON</button>
- 
-  <button id="btn-connexion">Connexion</button>
-  <input type="file" id="import-json-input" accept=".json,application/json" hidden>
-</aside>
-
-<main>
-  <div id="gauge-wrap">
-
-    <svg id="gauge" viewBox="0 0 700 410" xmlns="http://www.w3.org/2000/svg"></svg>
-  </div>
-</main>
-
-<script>
-const state = {
-  ticks: [
-    { val: 0 }, { val: 50 }, { val: 120 }, { val: 250 }, { val: 450 },
-    { val: 650 }, { val: 900 }, { val: 1150 }, { val: 1500 }, { val: 1850 },
-    { val: 2200 }, { val: 2600 }, { val: 3000 }, { val: 3500 }, { val: 4000 },
-    { val: 4500 }, { val: 5000 }, { val: 6000 }, { val: 9000 },
-  ],
-  segStyles: [
-    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
-    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
-    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
-    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
-    { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] }, { colors: ['#1c7d34'] },
-    { colors: ['#1c7d34'] }, { colors: ['#aa1f1f'] }, { colors: ['#aa1f1f'] },
-  ],
-  fontFamily: 'Arial Black, Arial, sans-serif',
-  fontSize: 15,
-  fontWeight: '900',
-  labelColor: '#111111',
-  labelOrient: 'radial',
-  labelGap: 8,
-  labelGapInner: 14,
-  labelTail: 20,
-  startAngle: 180,
-  endAngle: 0,
-  bottomCircleRadius: 0,
-  bottomCircleColor: '#d8d8d8',
-  selectedSegmentIndex: 0,
-  rangeStartIndex: 0,
-  rangeEndIndex: 0,
-  showBaseLine: false,
-  innerTick: true,
-};
-
-const defaultStateSnapshot = JSON.parse(JSON.stringify(state));
-const STORAGE_KEY = 'gauge-configurator-state-v1';
-
-const svg = document.getElementById('gauge');
-const NS = 'http://www.w3.org/2000/svg';
-const CX = 350;
-const CY = 350;
-const R_BAND_OUT = 310;
-const R_BAND_IN = 268;
-const R_FACE = 266;
-const R_TICK_OUT = 310;
-const R_TICK_END = 250;
-
-function toRad(d) { return d * Math.PI / 180; }
-function pt(r, a) { return { x: CX + r * Math.cos(a), y: CY - r * Math.sin(a) }; }
-function iToRad(i, n) {
-  return toRad(state.startAngle + i * ((state.endAngle - state.startAngle) / (n - 1)));
-}
-
-function elSVG(tag, attrs, text) {
-  const e = document.createElementNS(NS, tag);
-  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
-  if (text !== undefined) e.textContent = text;
-  return e;
-}
-
-function arcPath(rOut, rIn, startRad, endRad) {
-  const s1 = pt(rOut, startRad);
-  const e1 = pt(rOut, endRad);
-  const s2 = pt(rIn, endRad);
-  const e2 = pt(rIn, startRad);
-  const large = Math.abs(endRad - startRad) > Math.PI ? 1 : 0;
-  const outerSweep = startRad > endRad ? 1 : 0;
-  const innerSweep = outerSweep ? 0 : 1;
-  return `M ${s1.x} ${s1.y} A ${rOut} ${rOut} 0 ${large} ${outerSweep} ${e1.x} ${e1.y} L ${s2.x} ${s2.y} A ${rIn} ${rIn} 0 ${large} ${innerSweep} ${e2.x} ${e2.y} Z`;
-}
-
-function flatBottomArcPath(radius, startRad, endRad, bottomY) {
-  const s = pt(radius, startRad);
-  const e = pt(radius, endRad);
-  const large = Math.abs(endRad - startRad) > Math.PI ? 1 : 0;
-  const sweep = startRad > endRad ? 1 : 0;
-  return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} ${sweep} ${e.x} ${e.y} L ${e.x} ${bottomY} L ${s.x} ${bottomY} Z`;
-}
-
-function bottomSemiCirclePath(cx, topY, radius) {
-  const leftX = cx - radius;
-  const rightX = cx + radius;
-  return `M ${leftX} ${topY} A ${radius} ${radius} 0 0 1 ${rightX} ${topY} L ${leftX} ${topY} Z`;
-}
-
-function normalizeColorValue(color, fallback = '#1c7d34') {
-  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(color || '').trim()) ? String(color).trim() : fallback;
-}
-
-function normalizeSegmentStyle(style, fallback = '#1c7d34') {
-  if (typeof style === 'string') return { colors: [normalizeColorValue(style, fallback)] };
-  if (Array.isArray(style)) return { colors: normalizeStopList(style, fallback) };
-  if (style && Array.isArray(style.colors)) return { colors: normalizeStopList(style.colors, fallback) };
-  return { colors: [fallback] };
-}
-
-function normalizeStopList(colors, fallback = '#1c7d34') {
-  const normalized = (colors || []).map((color) => normalizeColorValue(color, fallback)).filter(Boolean);
-  return normalized.length ? normalized : [fallback];
-}
-
-function ensureSegmentStyles() {
-  const targetLength = Math.max(0, state.ticks.length - 1);
-  if (!Array.isArray(state.segStyles)) state.segStyles = [];
-  while (state.segStyles.length < targetLength) state.segStyles.push({ colors: ['#1c7d34'] });
-  while (state.segStyles.length > targetLength) state.segStyles.pop();
-  state.segStyles = state.segStyles.map((style, index) => normalizeSegmentStyle(style, index >= targetLength - 2 ? '#aa1f1f' : '#1c7d34'));
-  state.selectedSegmentIndex = Math.min(Math.max(0, state.selectedSegmentIndex || 0), Math.max(0, targetLength - 1));
-  state.rangeStartIndex = Math.min(Math.max(0, state.rangeStartIndex || 0), Math.max(0, targetLength - 1));
-  state.rangeEndIndex = Math.min(Math.max(0, state.rangeEndIndex || 0), Math.max(0, targetLength - 1));
-}
-
-function parseStopInput(value, fallback = '#1c7d34') {
-  return normalizeStopList(String(value || '').split(',').map((part) => part.trim()).filter(Boolean), fallback);
-}
-
-function buildSegmentEditorOptions() {
-  const select = document.getElementById('segment-editor-index');
-  const rangeStart = document.getElementById('segment-range-start');
-  const rangeEnd = document.getElementById('segment-range-end');
-  const previous = state.selectedSegmentIndex;
-  const previousRangeStart = state.rangeStartIndex;
-  const previousRangeEnd = state.rangeEndIndex;
-  select.innerHTML = '';
-  rangeStart.innerHTML = '';
-  rangeEnd.innerHTML = '';
-  state.segStyles.forEach((_, index) => {
-    const option = document.createElement('option');
-    option.value = index;
-    option.textContent = `Segment ${index + 1}`;
-    select.appendChild(option);
-
-    const optionStart = document.createElement('option');
-    optionStart.value = index;
-    optionStart.textContent = String(index + 1);
-    rangeStart.appendChild(optionStart);
-
-    const optionEnd = document.createElement('option');
-    optionEnd.value = index;
-    optionEnd.textContent = String(index + 1);
-    rangeEnd.appendChild(optionEnd);
-  });
-  if (state.segStyles.length) {
-    select.value = String(Math.min(previous, state.segStyles.length - 1));
-    rangeStart.value = String(Math.min(previousRangeStart, state.segStyles.length - 1));
-    rangeEnd.value = String(Math.min(previousRangeEnd, state.segStyles.length - 1));
-  }
-}
-
-function syncSegmentEditor() {
-  ensureSegmentStyles();
-  const select = document.getElementById('segment-editor-index');
-  const input = document.getElementById('segment-stops');
-  if (!state.segStyles.length) {
-    select.innerHTML = '';
-    input.value = '';
-    return;
-  }
-  state.selectedSegmentIndex = Math.min(state.selectedSegmentIndex, state.segStyles.length - 1);
-  select.value = String(state.selectedSegmentIndex);
-  document.getElementById('segment-range-start').value = String(state.rangeStartIndex);
-  document.getElementById('segment-range-end').value = String(state.rangeEndIndex);
-  input.value = state.segStyles[state.selectedSegmentIndex].colors.join(', ');
-}
-
-function updateSegmentEditorSelection(index) {
-  state.selectedSegmentIndex = Math.min(Math.max(0, index), Math.max(0, state.segStyles.length - 1));
-  syncSegmentEditor();
-  buildSegColors();
-}
-
-function getSegmentFill(i, a1, a2, defs) {
-  const style = normalizeSegmentStyle(state.segStyles[i], '#1c7d34');
-  if (style.colors.length === 1) return style.colors[0];
-
-  const gradientId = `seg-gradient-${i}`;
-  const start = pt(R_BAND_OUT, a1);
-  const end = pt(R_BAND_OUT, a2);
-  const gradient = elSVG('linearGradient', {
-    id: gradientId,
-    gradientUnits: 'userSpaceOnUse',
-    x1: start.x,
-    y1: start.y,
-    x2: end.x,
-    y2: end.y
-  });
-
-  style.colors.forEach((color, index) => {
-    gradient.appendChild(elSVG('stop', {
-      offset: `${(index / (style.colors.length - 1)) * 100}%`,
-      'stop-color': color
-    }));
-  });
-
-  defs.appendChild(gradient);
-  return `url(#${gradientId})`;
-}
-
-function hexToRgb(hex) {
-  const normalized = normalizeColorValue(hex).slice(1);
-  const full = normalized.length === 3 ? normalized.split('').map((c) => c + c).join('') : normalized;
-  return {
-    r: parseInt(full.slice(0, 2), 16),
-    g: parseInt(full.slice(2, 4), 16),
-    b: parseInt(full.slice(4, 6), 16)
-  };
-}
-
-function rgbToHex(rgb) {
-  return '#' + ['r', 'g', 'b'].map((key) => {
-    const value = Math.max(0, Math.min(255, Math.round(rgb[key])));
-    return value.toString(16).padStart(2, '0');
-  }).join('');
-}
-
-function interpolateHexColor(startColor, endColor, t) {
-  const a = hexToRgb(startColor);
-  const b = hexToRgb(endColor);
-  return rgbToHex({
-    r: a.r + (b.r - a.r) * t,
-    g: a.g + (b.g - a.g) * t,
-    b: a.b + (b.b - a.b) * t
-  });
-}
-
-function sampleGradientStops(colors, t) {
-  const stops = normalizeStopList(colors);
-  if (stops.length === 1) return stops[0];
-  if (t <= 0) return stops[0];
-  if (t >= 1) return stops[stops.length - 1];
-
-  const scaled = t * (stops.length - 1);
-  const index = Math.floor(scaled);
-  const localT = scaled - index;
-  return interpolateHexColor(stops[index], stops[index + 1], localT);
-}
-
-function syncControlsFromState() {
-  const rangeIds = [
-    ['font-size', state.fontSize],
-    ['start-angle', state.startAngle],
-    ['end-angle', state.endAngle],
-    ['label-gap', state.labelGap],
-    ['label-gap-inner', state.labelGapInner],
-    ['label-tail', state.labelTail],
-    ['bottom-circle-radius', state.bottomCircleRadius],
-  ];
-
-  rangeIds.forEach(([id, value]) => {
-    const input = document.getElementById(id);
-    const output = document.getElementById(id + '-val');
-    if (input) input.value = value;
-    if (output) output.textContent = value;
-  });
-
-  document.getElementById('font-family').value = state.fontFamily;
-  document.getElementById('font-weight').value = state.fontWeight;
-  document.getElementById('label-orient').value = state.labelOrient;
-  document.getElementById('label-color').value = state.labelColor;
-  document.getElementById('bottom-circle-color').value = state.bottomCircleColor;
-  document.getElementById('inner-tick').checked = state.innerTick;
-  document.getElementById('show-base-line').checked = state.showBaseLine;
-}
-
-function normalizeImportedState(raw) {
-  const next = JSON.parse(JSON.stringify(defaultStateSnapshot));
-  const source = raw && typeof raw === 'object' ? raw : {};
-  next.ticks = Array.isArray(source.ticks) && source.ticks.length >= 2 ? source.ticks.map((tick) => ({
-    val: Number(tick.val ?? 0),
-    label: tick.label === undefined || tick.label === '' ? undefined : String(tick.label)
-  })) : next.ticks;
-
-  next.segStyles = source.segStyles || source.segColors || next.segStyles;
-  next.selectedSegmentIndex = Number(source.selectedSegmentIndex ?? 0);
-  next.rangeStartIndex = Number(source.rangeStartIndex ?? next.rangeStartIndex);
-  next.rangeEndIndex = Number(source.rangeEndIndex ?? next.rangeEndIndex);
-  next.fontSize = Number(source.fontSize ?? next.fontSize);
-  next.labelGap = Number(source.labelGap ?? next.labelGap);
-  next.labelGapInner = Number(source.labelGapInner ?? next.labelGapInner);
-  next.labelTail = Number(source.labelTail ?? next.labelTail);
-  next.startAngle = Number(source.startAngle ?? next.startAngle);
-  next.endAngle = Number(source.endAngle ?? next.endAngle);
-  next.bottomCircleRadius = Number(source.bottomCircleRadius ?? next.bottomCircleRadius);
-  next.fontWeight = String(source.fontWeight ?? next.fontWeight);
-  next.fontFamily = String(source.fontFamily ?? next.fontFamily);
-  next.labelColor = normalizeColorValue(source.labelColor ?? next.labelColor, next.labelColor);
-  next.bottomCircleColor = normalizeColorValue(source.bottomCircleColor ?? next.bottomCircleColor, next.bottomCircleColor);
-  next.innerTick = Boolean(source.innerTick ?? next.innerTick);
-  next.showBaseLine = Boolean(source.showBaseLine ?? next.showBaseLine);
-
-  return next;
-}
-
-function applyImportedState(raw) {
-  const normalized = normalizeImportedState(raw);
-  Object.keys(state).forEach((key) => delete state[key]);
-  Object.assign(state, normalized);
-  ensureSegmentStyles();
-  syncControlsFromState();
-  buildTicksTable();
-  buildSegColors();
-  buildSegmentEditorOptions();
-  syncSegmentEditor();
-  render();
-}
-
-function saveStateToStorage() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      version: 1,
-      ...state
-    }));
-  } catch (error) {
-    // Ignore storage failures so the live preview keeps working.
-  }
-}
-
-function loadStateFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    applyImportedState(JSON.parse(raw));
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  const isServed = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  if (!isServed) {
-    console.info('Service worker indisponible hors http(s)/localhost.');
-    return;
-  }
-
-  navigator.serviceWorker.register('./sw.js').catch((error) => {
-    console.warn('Echec enregistrement service worker:', error);
-  });
-}
-
-function render() {
-  while (svg.firstChild) svg.removeChild(svg.firstChild);
-
-  ensureSegmentStyles();
-  const n = state.ticks.length;
-  if (n < 2) return;
-  const startRad = toRad(state.startAngle);
-  const endRad = toRad(state.endAngle);
-  const faceBottomExt = Math.ceil(state.fontSize * 0.9) + 6;
-  const faceBottomY = CY + faceBottomExt;
-  const viewBoxHeight = Math.ceil(faceBottomY + 10);
-  svg.setAttribute('viewBox', `0 0 700 ${viewBoxHeight}`);
-
-  const scene = elSVG('g', {});
-  const defs = elSVG('defs', {});
-  svg.appendChild(scene);
-  scene.appendChild(defs);
-
-  scene.appendChild(elSVG('path', {
-    d: flatBottomArcPath(R_BAND_OUT, startRad, endRad, faceBottomY),
-    fill: '#d8d8d8'
-  }));
-
-  for (let i = 0; i < n - 1; i++) {
-    const a1 = iToRad(i, n);
-    const a2 = iToRad(i + 1, n);
-    scene.appendChild(elSVG('path', {
-      d: arcPath(R_BAND_OUT, R_BAND_IN, a1, a2),
-      fill: getSegmentFill(i, a1, a2, defs)
-    }));
-  }
-
-  scene.appendChild(elSVG('path', {
-    d: flatBottomArcPath(R_FACE, startRad, endRad, faceBottomY),
-    fill: '#d8d8d8'
-  }));
-
-  if (state.bottomCircleRadius > 0) {
-    scene.appendChild(elSVG('path', {
-      d: bottomSemiCirclePath(CX, faceBottomY, state.bottomCircleRadius),
-      fill: state.bottomCircleColor
-    }));
-  }
-
-  if (state.showBaseLine) {
-    scene.appendChild(elSVG('line', {
-      x1: CX - R_BAND_OUT,
-      y1: CY,
-      x2: CX + R_BAND_OUT,
-      y2: CY,
-      stroke: '#111',
-      'stroke-width': '1.8',
-      'stroke-linecap': 'round'
-    }));
-  }
-
-  const labelData = [];
-  for (let i = 0; i < n; i++) {
-    const label = state.ticks[i].label !== undefined ? String(state.ticks[i].label) : String(state.ticks[i].val);
-    const t = elSVG('text', {
-      x: 0,
-      y: 0,
-      'text-anchor': 'middle',
-      'dominant-baseline': 'middle',
-      'font-family': state.fontFamily,
-      'font-weight': state.fontWeight,
-      'font-size': state.fontSize,
-      fill: 'transparent',
-    }, label);
-    scene.appendChild(t);
-    labelData.push({ i, halfW: t.getComputedTextLength() / 2, el: t });
-  }
-
-  for (const { i, halfW, el: t } of labelData) {
-    const a = iToRad(i, n);
-    const aDeg = state.startAngle + i * ((state.endAngle - state.startAngle) / (n - 1));
-
-    const rLabel = R_TICK_END - state.labelGap - halfW;
-    const pos = pt(rLabel, a);
-
-    const rOuterEnd = rLabel + halfW + state.labelGap;
-    const p1 = pt(R_TICK_OUT, a);
-    const p2 = pt(rOuterEnd, a);
-    scene.appendChild(elSVG('line', {
-      x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
-      stroke: '#111', 'stroke-width': '1.8', 'stroke-linecap': 'round'
-    }));
-
-    if (state.innerTick) {
-      const rInnerEdge = rLabel - halfW;
-      const rInnerStart = rInnerEdge - state.labelGapInner;
-      const rInnerEnd = rInnerStart - state.labelTail;
-      const p3 = pt(rInnerStart, a);
-      const p4 = pt(rInnerEnd, a);
-      scene.appendChild(elSVG('line', {
-        x1: p3.x, y1: p3.y, x2: p4.x, y2: p4.y,
-        stroke: '#111', 'stroke-width': '1.8', 'stroke-linecap': 'round'
-      }));
-    }
-
-    let rotSVG;
-    if (state.labelOrient === 'horizontal') {
-      rotSVG = 0;
-    } else {
-      rotSVG = i <= (n - 1) / 2 ? 180 - aDeg : -aDeg;
-    }
-
-    t.setAttribute('x', pos.x);
-    t.setAttribute('y', pos.y);
-    t.setAttribute('fill', state.labelColor);
-    t.setAttribute('font-family', state.fontFamily);
-    t.setAttribute('font-weight', state.fontWeight);
-    t.setAttribute('font-size', state.fontSize);
-    t.setAttribute('transform', `rotate(${rotSVG}, ${pos.x}, ${pos.y})`);
-  }
-
-  saveStateToStorage();
-}
-
-function buildSegColors() {
-  const grid = document.getElementById('seg-colors');
-  grid.innerHTML = '';
-  const n = state.ticks.length - 1;
-  ensureSegmentStyles();
-  for (let i = 0; i < n; i++) {
-    const inp = document.createElement('input');
-    inp.type = 'color';
-    inp.className = i === state.selectedSegmentIndex ? 'selected' : '';
-    inp.value = state.segStyles[i].colors[0] || '#1c7d34';
-    inp.title = `Segment ${i + 1}`;
-    inp.addEventListener('click', () => {
-      updateSegmentEditorSelection(i);
-    });
-    inp.addEventListener('input', (e) => {
-      state.segStyles[i] = { colors: [e.target.value] };
-      state.selectedSegmentIndex = i;
-      syncSegmentEditor();
-      render();
-    });
-    grid.appendChild(inp);
-  }
-}
-
-function buildTicksTable() {
-  const tbody = document.getElementById('ticks-body');
-  tbody.innerHTML = '';
-  state.ticks.forEach((tick, i) => {
-    const tr = document.createElement('tr');
-
-    const tdI = document.createElement('td');
-    tdI.textContent = i;
-    tdI.style.cssText = 'color:var(--muted);font-family:DM Mono,monospace;font-size:11px;padding:2px 4px';
-    tr.appendChild(tdI);
-
-    const tdV = document.createElement('td');
-    const inpV = document.createElement('input');
-    inpV.type = 'number';
-    inpV.value = tick.val;
-    inpV.addEventListener('input', (e) => {
-      state.ticks[i].val = Number(e.target.value);
-      render();
-    });
-    tdV.appendChild(inpV);
-    tr.appendChild(tdV);
-
-    const tdL = document.createElement('td');
-    const inpL = document.createElement('input');
-    inpL.type = 'text';
-    inpL.placeholder = String(tick.val);
-    inpL.value = tick.label !== undefined ? tick.label : '';
-    inpL.addEventListener('input', (e) => {
-      state.ticks[i].label = e.target.value === '' ? undefined : e.target.value;
-      render();
-    });
-    tdL.appendChild(inpL);
-    tr.appendChild(tdL);
-
-    const tdD = document.createElement('td');
-    const btn = document.createElement('button');
-    btn.textContent = 'x';
-    btn.addEventListener('click', () => {
-      state.ticks.splice(i, 1);
-      state.segStyles.splice(Math.max(0, i - 1), 1);
-      buildTicksTable();
-      buildSegColors();
-      buildSegmentEditorOptions();
-      syncSegmentEditor();
-      render();
-    });
-    tdD.appendChild(btn);
-    tr.appendChild(tdD);
-
-    tbody.appendChild(tr);
-  });
-}
-
-document.getElementById('btn-add-tick').addEventListener('click', () => {
-  const last = state.ticks[state.ticks.length - 1];
-  state.ticks.push({ val: (last ? last.val + 1000 : 0) });
-  state.segStyles.push({ colors: ['#1c7d34'] });
-  buildTicksTable();
-  buildSegColors();
-  buildSegmentEditorOptions();
-  syncSegmentEditor();
-  render();
-});
-
-function bindRange(id, key) {
-  const inp = document.getElementById(id);
-  const out = document.getElementById(id + '-val');
-  inp.addEventListener('input', (e) => {
-    state[key] = Number(e.target.value);
-    if (out) out.textContent = e.target.value;
-    render();
-  });
-}
-
-function bindSelect(id, key) {
-  document.getElementById(id).addEventListener('change', (e) => {
-    state[key] = e.target.value;
-    render();
-  });
-}
-
-function bindColor(id, key) {
-  document.getElementById(id).addEventListener('input', (e) => {
-    state[key] = e.target.value;
-    render();
-  });
-}
-
-function exportCurrentSVG() {
-  const clone = svg.cloneNode(true);
-  const viewBox = svg.getAttribute('viewBox') || '0 0 700 400';
-  const parts = viewBox.split(/\s+/).map(Number);
-  const width = parts[2] || 700;
-  const height = parts[3] || 400;
-  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  clone.setAttribute('width', width);
-  clone.setAttribute('height', height);
-  clone.removeAttribute('style');
-
-  const source = '<?xml version="1.0" encoding="UTF-8"?>\n' + clone.outerHTML;
-  const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'gauge-export.svg';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function exportCurrentJSON() {
-  const payload = JSON.stringify({
-    version: 1,
-    ...state
-  }, null, 2);
-  const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'gauge-config.json';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function importConfigFile(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      applyImportedState(JSON.parse(String(reader.result || '{}')));
-    } catch (error) {
-      alert('JSON invalide');
-    }
-  };
-  reader.readAsText(file);
-}
-
-function applySegmentStopsFromInput() {
-  ensureSegmentStyles();
-  if (!state.segStyles.length) return;
-  const input = document.getElementById('segment-stops');
-  const fallback = state.segStyles[state.selectedSegmentIndex]?.colors?.[0] || '#1c7d34';
-  state.segStyles[state.selectedSegmentIndex] = {
-    colors: parseStopInput(input.value, fallback)
-  };
-  buildSegColors();
-  syncSegmentEditor();
-  render();
-}
-
-function applyGradientAcrossRange() {
-  ensureSegmentStyles();
-  if (!state.segStyles.length) return;
-
-  const input = document.getElementById('segment-stops');
-  const fallback = state.segStyles[state.selectedSegmentIndex]?.colors?.[0] || '#1c7d34';
-  const colors = parseStopInput(input.value, fallback);
-  const start = Math.min(state.rangeStartIndex, state.rangeEndIndex);
-  const end = Math.max(state.rangeStartIndex, state.rangeEndIndex);
-  const segmentCount = end - start + 1;
-
-  if (segmentCount <= 1) {
-    state.selectedSegmentIndex = start;
-    state.segStyles[start] = { colors };
-  } else {
-    for (let offset = 0; offset < segmentCount; offset++) {
-      const segStartT = offset / segmentCount;
-      const segEndT = (offset + 1) / segmentCount;
-      const localColors = [sampleGradientStops(colors, segStartT)];
-
-      if (colors.length > 2) {
-        for (let stopIndex = 1; stopIndex < colors.length - 1; stopIndex++) {
-          const stopT = stopIndex / (colors.length - 1);
-          if (stopT > segStartT && stopT < segEndT) {
-            localColors.push(colors[stopIndex]);
-          }
-        }
-      }
-
-      localColors.push(sampleGradientStops(colors, segEndT));
-      state.segStyles[start + offset] = { colors: normalizeStopList(localColors) };
-    }
-    state.selectedSegmentIndex = start;
-  }
-
-  buildSegColors();
-  syncSegmentEditor();
-  render();
-}
-
-bindRange('font-size', 'fontSize');
-bindRange('start-angle', 'startAngle');
-bindRange('end-angle', 'endAngle');
-bindRange('label-gap', 'labelGap');
-bindRange('label-gap-inner', 'labelGapInner');
-bindRange('label-tail', 'labelTail');
-bindRange('bottom-circle-radius', 'bottomCircleRadius');
-bindSelect('font-family', 'fontFamily');
-bindSelect('font-weight', 'fontWeight');
-bindSelect('label-orient', 'labelOrient');
-bindColor('label-color', 'labelColor');
-bindColor('bottom-circle-color', 'bottomCircleColor');
-
-document.getElementById('inner-tick').addEventListener('change', (e) => {
-  state.innerTick = e.target.checked;
-  render();
-});
-
-document.getElementById('show-base-line').addEventListener('change', (e) => {
-  state.showBaseLine = e.target.checked;
-  render();
-});
-
-document.getElementById('btn-export-svg').addEventListener('click', exportCurrentSVG);
-document.getElementById('btn-export-json').addEventListener('click', exportCurrentJSON);
-document.getElementById('btn-import-json').addEventListener('click', () => {
-  document.getElementById('import-json-input').click();
-});
-
-document.getElementById('btn-connexion').addEventListener('click', () => {
-  window.location.href = "/secure";
-});
-document.getElementById('import-json-input').addEventListener('change', (e) => {
-  importConfigFile(e.target.files && e.target.files[0]);
-  e.target.value = '';
-});
-document.getElementById('segment-editor-index').addEventListener('change', (e) => {
-  updateSegmentEditorSelection(Number(e.target.value));
-});
-document.getElementById('segment-range-start').addEventListener('change', (e) => {
-  state.rangeStartIndex = Number(e.target.value);
-  syncSegmentEditor();
-});
-document.getElementById('segment-range-end').addEventListener('change', (e) => {
-  state.rangeEndIndex = Number(e.target.value);
-  syncSegmentEditor();
-});
-document.getElementById('btn-apply-segment-stops').addEventListener('click', applySegmentStopsFromInput);
-document.getElementById('btn-apply-segment-range').addEventListener('click', applyGradientAcrossRange);
-document.getElementById('btn-segment-solid').addEventListener('click', () => {
-  ensureSegmentStyles();
-  if (!state.segStyles.length) return;
-  const firstColor = state.segStyles[state.selectedSegmentIndex]?.colors?.[0] || '#1c7d34';
-  state.segStyles[state.selectedSegmentIndex] = { colors: [firstColor] };
-  buildSegColors();
-  syncSegmentEditor();
-  render();
-});
-
-ensureSegmentStyles();
-syncControlsFromState();
-buildSegColors();
-buildSegmentEditorOptions();
-syncSegmentEditor();
-buildTicksTable();
-if (!loadStateFromStorage()) {
-  render();
-}
-registerServiceWorker();
-
-if (document.fonts && document.fonts.ready) {
-  document.fonts.ready.then(() => render());
-}
-</script>
+  <main>
+    <div class="eyebrow">maximeblanchard.github.io</div>
+    <h1>Boîte à outils web</h1>
+    <p class="subtitle">
+      Accès direct aux différents utilitaires hébergés sur ce dépôt : calcul DPE 3CL,
+      performances de pompe à chaleur et création de fonds de jauge.
+    </p>
+
+    <section class="grid" aria-label="Liste des outils">
+      <!-- 1. MelchioDPE -->
+      <a class="card card-dpe" href="./dpe/">
+        <div class="card-top">
+          <div class="icon-box icon-dpe" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10.5L12 3l9 7.5" />
+              <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+              <path d="M9 15h6" />
+              <path d="M9 12h4" />
+            </svg>
+          </div>
+          <span class="tag">3CL-DPE · PWA</span>
+        </div>
+        <h2>MelchioDPE</h2>
+        <p>
+          Calculateur DPE simplifié et détaillé selon la méthode 3CL : étiquettes Énergie &amp; GES,
+          barèmes 2026 / 2027, schéma des déperditions et simulateur de travaux.
+        </p>
+        <div class="card-footer">
+          <span class="path">/dpe/</span>
+          <span class="cta">Ouvrir l’outil <span class="arrow">→</span></span>
+        </div>
+      </a>
+
+      <!-- 2. Calculateur COP PAC -->
+      <a class="card card-pac" href="./pac/">
+        <div class="card-top">
+          <div class="icon-box icon-pac" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+              <path d="M18 8h2" />
+              <path d="M18 12h2" />
+            </svg>
+          </div>
+          <span class="tag">Pompe à chaleur · PWA</span>
+        </div>
+        <h2>Calculateur COP PAC</h2>
+        <p>
+          Calcul du COP et de la puissance thermique d’une pompe à chaleur (Panasonic Multi Z)
+          selon la température extérieure, les unités et les conditions de fonctionnement.
+        </p>
+        <div class="card-footer">
+          <span class="path">/pac/</span>
+          <span class="cta">Ouvrir l’outil <span class="arrow">→</span></span>
+        </div>
+      </a>
+
+      <!-- 3. Configurateur de Jauge -->
+      <a class="card card-jauge" href="./jauge/">
+        <div class="card-top">
+          <div class="icon-box icon-jauge" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 14 4-4" />
+              <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+            </svg>
+          </div>
+          <span class="tag">SVG · PWA</span>
+        </div>
+        <h2>Configurateur de jauge</h2>
+        <p>
+          Création de fonds de jauge personnalisés avec aperçu en direct, gestion des segments,
+          graduations, dégradés et export SVG / JSON.
+        </p>
+        <div class="card-footer">
+          <span class="path">/jauge/</span>
+          <span class="cta">Ouvrir l’outil <span class="arrow">→</span></span>
+        </div>
+      </a>
+    </section>
+  </main>
+
+  <footer>
+    <span>Maxime Blanchard · Outils statiques GitHub Pages</span>
+    <span>3 PWA indépendantes · hors-ligne &amp; sans backend</span>
+  </footer>
+
+  <script src="./sw-cleanup.js" defer></script>
 </body>
 </html>
